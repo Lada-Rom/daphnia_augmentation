@@ -28,7 +28,7 @@ int main() {
         cv::addWeighted(frame(roi), 0.5, bubble2, 0.5, 0, frame(roi));
 
         cv::imshow("Frame", frame);
-        char key = (char)cv::waitKey(100);
+        char key = (char)cv::waitKey(1);
         if (key == 27)
             break;
     }
