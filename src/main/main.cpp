@@ -4,19 +4,47 @@
 #include <vector>
 
 struct Params {
-    const size_t num_bubbles{ 4 };
+    size_t num_bubbles{ 4 };
 
-    const std::string main_dir = "../../../data/";
-    const std::string masks_subdir = "masks/";
-    const std::string video_subdir = "videos/";
+    std::string main_dir = "../../../data/";
+    std::string masks_subdir = "masks/";
+    std::string video_subdir = "videos/";
 
-    const std::string main_name = "bubble";
-    const std::string black_label_name = "_black";
-    const std::string white_label_name = "_white";
-    const std::string main_ext = ".tiff";
+    std::string main_name = "bubble";
+    std::string black_label_name = "_black";
+    std::string white_label_name = "_white";
+    std::string main_ext = ".tiff";
 };
 
-Params param;
+class Bubble {
+public:
+    Bubble() = default;
+    Bubble(const cv::Mat& black, const cv::Mat& white)
+        : black_mask_(black), white_mask_(white) { }
+    ~Bubble() = default;
+
+    size_t rows() const { return black_mask_.rows; }
+    size_t cols() const { return black_mask_.cols; }
+
+    size_t x() const { return x_; }
+    size_t y() const { return y_; }
+
+    cv::Mat getBlackMask() const { return black_mask_; }
+    cv::Mat getWhiteMask() const { return white_mask_; }
+
+    void setPos(size_t x, size_t y) {
+        x_ = x;
+        y_ = y;
+    }
+
+private:
+    size_t x_{};
+    size_t y_{};
+    cv::Mat black_mask_;
+    cv::Mat white_mask_;
+};
+
+const Params param;
 
 std::vector<cv::Mat> getKit(const std::string& label_name) {
     std::vector<cv::Mat> kit;
@@ -32,21 +60,26 @@ std::vector<cv::Mat> getKit(const std::string& label_name) {
     return kit;
 }
 
-void showBubble(cv::Mat& frame, 
-    const cv::Mat& black, const cv::Mat& white,
-    double alpha, double beta, size_t x, size_t y) {
-    cv::Rect roi(x, y, black.cols, black.rows);
+std::vector<Bubble> initializeBubbleKit(
+    const std::vector<cv::Mat>& black_mask_kit,
+    const std::vector<cv::Mat>& white_mask_kit) {
+    std::vector<Bubble> bubble_kit;
+    for (size_t i{}; i < param.num_bubbles; ++i)
+        bubble_kit.push_back({ black_mask_kit[i], white_mask_kit[i] });
+    return bubble_kit;
+}
+
+void showBubble(cv::Mat& frame, const Bubble& bubble) {
+    cv::Rect roi(bubble.x(), bubble.y(), bubble.cols(), bubble.rows());
     cv::Mat float_frame;
     cv::medianBlur(frame(roi), float_frame, 9);
     float_frame.convertTo(float_frame, CV_32FC1);
 
-    frame(roi) -= black.mul(float_frame);
-    frame(roi) += white.mul(float_frame);
+    frame(roi) -= bubble.getBlackMask().mul(float_frame);
+    frame(roi) += bubble.getWhiteMask().mul(float_frame);
 }
 
-void showAllBubbles(cv::Mat& frame,
-    const std::vector<cv::Mat>& black_kit, 
-    const std::vector<cv::Mat>& white_kit, 
+void showAllBubbles(cv::Mat& frame, std::vector<Bubble>& bubble_kit,
     size_t step, const std::vector<size_t>& borders, bool draw_border = true) {
 
     size_t left_border = borders[0];
@@ -64,8 +97,9 @@ void showAllBubbles(cv::Mat& frame,
     //if bubbles too much, it can multyplies
     size_t x = left_border, y = upper_border;
     for (size_t i{}; i < param.num_bubbles; ++i) {
-        showBubble(frame, black_kit[i], white_kit[i], 0.4, 0.2, x, y);
-        if (x + step + black_kit[i].cols < right_border) {
+        bubble_kit[i].setPos(x, y);
+        showBubble(frame, bubble_kit[i]);
+        if (x + step + bubble_kit[i].cols() < right_border) {
             x += step;
         }
         else {
@@ -85,6 +119,7 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
     std::vector<size_t> borders{110, 120, 60, 60};
     std::vector<cv::Mat> bubble_black_kit = getKit(param.black_label_name);
     std::vector<cv::Mat> bubble_white_kit = getKit(param.white_label_name);
+    std::vector<Bubble> bubble_kit = initializeBubbleKit(bubble_black_kit, bubble_white_kit);
 
     while (true) {
         cap >> frame;
@@ -92,7 +127,7 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
             break;
         cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
 
-        showAllBubbles(frame, bubble_black_kit, bubble_white_kit, step, borders);
+        showAllBubbles(frame, bubble_kit, step, borders);
 
         cv::imshow("Frame", frame);
         char key = (char)cv::waitKey(10);
