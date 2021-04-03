@@ -3,25 +3,29 @@
 #include <string>
 #include <vector>
 
-const size_t num_bubbles{ 4 };
+struct Params {
+    const size_t num_bubbles{ 4 };
 
-const std::string main_dir = "../../../data/";
-const std::string masks_subdir = "masks/";
-const std::string video_subdir = "videos/";
+    const std::string main_dir = "../../../data/";
+    const std::string masks_subdir = "masks/";
+    const std::string video_subdir = "videos/";
 
-const std::string main_name = "bubble";
-const std::string black_label_name = "_black";
-const std::string white_label_name = "_white";
-const std::string main_ext = ".tiff";
+    const std::string main_name = "bubble";
+    const std::string black_label_name = "_black";
+    const std::string white_label_name = "_white";
+    const std::string main_ext = ".tiff";
+};
+
+Params param;
 
 std::vector<cv::Mat> getKit(const std::string& label_name) {
     std::vector<cv::Mat> kit;
-    std::string fullname = main_dir + masks_subdir + main_name;
+    std::string fullname = param.main_dir + param.masks_subdir + param.main_name;
 
     cv::Mat new_image;
-    for (size_t i{}; i < num_bubbles; ++i) {
+    for (size_t i{}; i < param.num_bubbles; ++i) {
         new_image = cv::imread(
-            fullname + std::to_string(i) + label_name + main_ext, cv::IMREAD_ANYDEPTH);
+            fullname + std::to_string(i) + label_name + param.main_ext, cv::IMREAD_ANYDEPTH);
         kit.push_back(new_image);
     }
 
@@ -59,7 +63,7 @@ void showAllBubbles(cv::Mat& frame,
 
     //if bubbles too much, it can multyplies
     size_t x = left_border, y = upper_border;
-    for (size_t i{}; i < num_bubbles; ++i) {
+    for (size_t i{}; i < param.num_bubbles; ++i) {
         showBubble(frame, black_kit[i], white_kit[i], 0.4, 0.2, x, y);
         if (x + step + black_kit[i].cols < right_border) {
             x += step;
@@ -79,8 +83,8 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
 
     //borders: left, right, up, down
     std::vector<size_t> borders{110, 120, 60, 60};
-    std::vector<cv::Mat> bubble_black_kit = getKit(black_label_name);
-    std::vector<cv::Mat> bubble_white_kit = getKit(white_label_name);
+    std::vector<cv::Mat> bubble_black_kit = getKit(param.black_label_name);
+    std::vector<cv::Mat> bubble_white_kit = getKit(param.white_label_name);
 
     while (true) {
         cap >> frame;
@@ -99,7 +103,7 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
 
 int main() {
     std::string video_name = "Male_Day13.avi";
-    std::string source_filename = main_dir + video_subdir + video_name;
+    std::string source_filename = param.main_dir + param.video_subdir + video_name;
     cv::VideoCapture cap(source_filename);
 
     if (!cap.isOpened()) {
