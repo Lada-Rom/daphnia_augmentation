@@ -12,15 +12,17 @@ const std::string video_subdir = "videos/";
 const std::string main_name = "bubble";
 const std::string black_label_name = "_black";
 const std::string white_label_name = "_white";
-const std::string main_ext = ".png";
+const std::string main_ext = ".tiff";
 
 std::vector<cv::Mat> getKit(const std::string& label_name) {
     std::vector<cv::Mat> kit;
     std::string fullname = main_dir + masks_subdir + main_name;
 
+    cv::Mat new_image;
     for (size_t i{}; i < num_bubbles; ++i) {
-        kit.push_back(cv::imread(
-            fullname + std::to_string(i) + label_name + main_ext));
+        new_image = cv::imread(
+            fullname + std::to_string(i) + label_name + main_ext, cv::IMREAD_ANYDEPTH);
+        kit.push_back(new_image);
     }
 
     return kit;
@@ -30,8 +32,12 @@ void showBubble(cv::Mat& frame,
     const cv::Mat& black, const cv::Mat& white,
     double alpha, double beta, size_t x, size_t y) {
     cv::Rect roi(x, y, black.cols, black.rows);
-    frame(roi) -= alpha * black;
-    frame(roi) += beta * white;
+    cv::Mat float_frame;
+    cv::medianBlur(frame(roi), float_frame, 9);
+    float_frame.convertTo(float_frame, CV_32FC1);
+
+    frame(roi) -= black.mul(float_frame);
+    frame(roi) += white.mul(float_frame);
 }
 
 void showAllBubbles(cv::Mat& frame,
@@ -80,6 +86,7 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
         cap >> frame;
         if (frame.empty())
             break;
+        cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
 
         showAllBubbles(frame, bubble_black_kit, bubble_white_kit, step, borders);
 

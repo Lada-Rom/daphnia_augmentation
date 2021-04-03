@@ -44,20 +44,35 @@ int calcMedian(const cv::Mat& mat) {
 void writeMasks(const cv::Mat& image,
     const std::string& black_path, const std::string& white_path,
     size_t x, size_t y, size_t index) {
-    cv::Mat neg_image = cv::Scalar{ 255 } - image;
-    double black_median = calcMedian(neg_image);
-    double white_median = calcMedian(image);
+    //black mask
+    cv::Mat source;
+    cv::Mat source_blured;
 
-    cv::Mat black_mask;
-    cv::threshold(neg_image, black_mask, black_median, 255, cv::ThresholdTypes::THRESH_TOZERO);
-    cv::GaussianBlur(black_mask, black_mask, cv::Size(3, 3), 0.9);
+    cv::medianBlur(image, source_blured, 13);
+    image.convertTo(source, CV_32FC1, 1.0 / 255);
+    source_blured.convertTo(source_blured, CV_32FC1, 1.0 / 255);
+
+    cv::Mat source_diff = source_blured - source;
+    cv::Mat black_mask = source_diff / source_blured;
+
+    cv::threshold(black_mask, black_mask, 0.04, 255, cv::ThresholdTypes::THRESH_TOZERO);
     cv::imwrite(black_path, black_mask);
 
-    cv::Mat white_mask;
-    cv::threshold(image, white_mask, white_median + 20, 255, cv::ThresholdTypes::THRESH_TOZERO);
+    //white mask
+    cv::Mat negative = 255 - image;
+    cv::Mat neg_blured;
+
+    cv::medianBlur(negative, neg_blured, 13);
+    negative.convertTo(negative, CV_32FC1, 1.0 / 255);
+    neg_blured.convertTo(neg_blured, CV_32FC1, 1.0 / 255);
+
+    cv::Mat neg_diff = neg_blured - negative;
+    cv::Mat white_mask = neg_diff / neg_blured;
+
+    cv::threshold(white_mask, white_mask, 0.05, 255, cv::ThresholdTypes::THRESH_TOZERO);
     cv::imwrite(white_path, white_mask);
 
-    imshowStack("image" + std::to_string(index), x, y, image, neg_image, black_mask, white_mask);
+    imshowStack("image" + std::to_string(index), x, y, image, negative * 255, source_diff * 255, neg_diff * 255);
 }
 
 std::vector<cv::Mat> getAllBubbles(const std::string& dir, const std::string& name, const std::string& ext) {
@@ -89,9 +104,10 @@ int main() {
     const std::string dst_dir = "../../../data/masks/";
     const std::string main_name = "bubble";
     const std::string main_ext = ".png";
+    const std::string sub_ext = ".tiff";
 
     std::vector<cv::Mat> bubbles_kit = getAllBubbles(src_dir, main_name, main_ext);
-    writeAllMasks(bubbles_kit, dst_dir, main_name, "_black", "_white", main_ext);
+    writeAllMasks(bubbles_kit, dst_dir, main_name, "_black", "_white", sub_ext);
 
     cv::waitKey(0);
 }
