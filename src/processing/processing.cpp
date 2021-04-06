@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-const size_t num_bubbles{ 4 };
+const size_t num_bubbles{ 10 };
 
 void showWindow(const cv::Mat& image, std::string name = "Image",
     size_t x = 0, size_t y = 0) {
@@ -67,6 +67,7 @@ void writeMasks(const cv::Mat& image,
     neg_blured.convertTo(neg_blured, CV_32FC1, 1.0 / 255);
 
     cv::Mat neg_diff = neg_blured - negative;
+//    cv::Mat white_mask = neg_diff;
     cv::Mat white_mask = neg_diff / neg_blured;
 
     cv::threshold(white_mask, white_mask, 0.05, 255, cv::ThresholdTypes::THRESH_TOZERO);

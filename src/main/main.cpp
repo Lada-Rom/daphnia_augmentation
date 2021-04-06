@@ -4,7 +4,7 @@
 #include <vector>
 
 struct Params {
-    size_t num_bubbles{ 4 };
+    size_t num_bubbles{ 10 };
 
     std::string main_dir = "../../../data/";
     std::string masks_subdir = "masks/";
@@ -121,10 +121,12 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
     std::vector<cv::Mat> bubble_white_kit = getKit(param.white_label_name);
     std::vector<Bubble> bubble_kit = initializeBubbleKit(bubble_black_kit, bubble_white_kit);
 
+//    size_t i{};
     while (true) {
         cap >> frame;
         if (frame.empty())
             break;
+//        cv::imwrite(param.main_dir + "parse/" + std::to_string(i) + ".png", frame);
         cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
 
         showAllBubbles(frame, bubble_kit, step, borders);
@@ -133,11 +135,14 @@ void playVideoWithBubbles(cv::VideoCapture& cap, size_t step) {
         char key = (char)cv::waitKey(10);
         if (key == 27)
             break;
+//        ++i;
     }
 }
 
 int main() {
-    std::string video_name = "Male_Day13.avi";
+//    std::string video_name = "Male_Day13.avi";
+    std::string video_name = "Female_Day13.avi";
+
     std::string source_filename = param.main_dir + param.video_subdir + video_name;
     cv::VideoCapture cap(source_filename);
 
